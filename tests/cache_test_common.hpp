@@ -6,8 +6,8 @@
 #include <cstddef>
 #include <vector>
 
-namespace cache_tests {
-
+namespace cache_tests 
+{
     struct TestPage {
         caches::Key id;
         int generation;
