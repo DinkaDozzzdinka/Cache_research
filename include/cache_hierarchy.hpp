@@ -14,78 +14,59 @@
 namespace caches 
 {
     template <typename T>
-    class CacheHierarchy {
+    class CacheHierarchy 
+    {
     private:
         std::vector<CacheLevel<T>> levels_;
 
         template <typename Loader>
-        T fetch(
-            std::size_t level,
-            const Key& key,
-            Loader& source,
-            bool& system_hit
-        ) 
+        struct NextLevelLoader
         {
-            if (level == levels_.size()) {
-                return source(key);             // slow_get_page
+            CacheHierarchy<T>& hierarchy;
+            std::size_t next_level;
+            Loader& slow_get_page;
+            bool& system_hit;
+
+            T operator()(const Key& requested_key) {
+                return hierarchy.fetch(next_level, requested_key, slow_get_page, system_hit);
             }
+        };
 
-            auto load_from_next = [&](const Key& requested_key) {
-                return fetch(
-                    level + 1,
-                    requested_key,
-                    source,
-                    system_hit
-                );
-            };
 
-            // NOTE: we can use std::visit later instead 
-            auto result = access_level(
-                levels_[level_number],
-                key,
-                load_from_next
-            );
+        template <typename Loader>
+        T fetch(std::size_t level, const Key& key, Loader& slow_get_page, bool& system_hit) 
+        {
+            if (level == levels_.size()) 
+                return slow_get_page(key);             
 
-            if (result.hit) {
+            NextLevelLoader<Loader> load_from_next{*this, level + 1, slow_get_page, system_hit};
+
+            auto result = access_level(levels_[level], key, load_from_next);
+
+            if (result.hit) 
                 system_hit = true;
-            }
 
             return std::move(result.value);
         }
 
     public:
-        CacheHierarchy(
-            const Config& config,
-            const std::vector<std::size_t>& capacities
-        ) 
+        CacheHierarchy(const Config& config, const std::vector<std::size_t>& capacities) 
         {
-            if (config.policies.empty()) {
+            if (config.policies.empty()) 
                 throw std::invalid_argument("No cache levels");
-            }
 
-            if (config.policies.size() != capacities.size()) {
-                throw std::invalid_argument(
-                    "Policy count and capacity count differ"
-                );
-            }
+            if (config.policies.size() != capacities.size()) 
+                throw std::invalid_argument("Policy count and capacity count differ");
 
             levels_.reserve(config.policies.size());
 
             for (std::size_t i = 0; i < config.policies.size(); ++i) {
-                levels_.push_back(
-                    make_level<T>(
-                        config.policies[i],
-                        capacities[i]
-                    )
-                );
+                levels_.push_back(make_level<T>(config.policies[i], capacities[i]));
             }
         }
 
         template <typename Loader>
-        LookupResult<T> lookup_update(
-            const Key& key,
-            Loader&& source
-        ) {
+        LookupResult<T> lookup_update(const Key& key, Loader&& source) {
             bool system_hit = false;
 
             T page = fetch(0, key, source, system_hit);

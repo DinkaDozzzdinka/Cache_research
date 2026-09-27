@@ -18,25 +18,25 @@ namespace caches
     {
         LRU,
         ARC,
-        TwoQ,
+        TWO_Q,
         LFU,
         LIRS
     };
 
-    inline Policy ParsePolicy (const std:: string& cache_name) 
+    inline Policy ParsePolicy (const std::string& cache_name) 
     {
-        static const std:: unordered_map <std:: string, Policy> policy_map = 
+        static const std:: unordered_map <std::string, Policy> policy_map = 
         {
             {"LRU",  Policy::LRU},
             {"ARC",  Policy::ARC},
-            {"2Q",   Policy::TwoQ},
+            {"2Q",   Policy::TWO_Q},
             {"LFU",  Policy::LFU},
             {"LIRS", Policy::LIRS}
         };
 
         auto cache = policy_map.find (cache_name);
         if (cache == policy_map.end())
-            throw std:: invalid_argument("Unknown cache policy: " + cache_name);
+            throw std::invalid_argument("Unknown cache policy: " + cache_name);
         return cache->second;
     }
 
