@@ -1,2 +1,4 @@
-/build
-/experiments
+build/
+*.o
+*.x
+.vscode/

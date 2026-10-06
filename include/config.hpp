@@ -1,10 +1,12 @@
 #pragma once
 
 #include <unordered_map>
+#include <fstream>
 #include <iostream>
 #include <string>
 #include <vector>
 #include <stdexcept>
+#include <charconv>
 
 // 3 LRU ARC LFU
 // policies[0] - L1
