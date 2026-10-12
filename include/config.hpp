@@ -8,11 +8,6 @@
 #include <stdexcept>
 #include <charconv>
 
-// 3 LRU ARC LFU
-// policies[0] - L1
-// policies[1] - L2
-// policies[2] - L3
-
 
 namespace caches 
 {

@@ -1,7 +1,7 @@
 #include <iostream>
 
-
 #include "config.hpp"
+#include "experiment.hpp"
 
 
 int main(int argc, char* argv[])
@@ -12,7 +12,8 @@ int main(int argc, char* argv[])
         return 1;
     }
     
-    const caches::Config config = caches::ReadConfig(argv[1]);
+    const caches:: Config config = caches:: ReadConfig(argv[1]);
+    caches:: RunExperiment (config, std:: cin);
     
     return 0;
 }
