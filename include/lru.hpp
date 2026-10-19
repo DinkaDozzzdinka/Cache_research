@@ -1,6 +1,6 @@
 #pragma once
 
-
+#include <optional>
 #include <list>
 #include <unordered_map>
 
@@ -13,11 +13,12 @@ namespace caches
             using ListIt = typename std:: list <std:: pair <KeyT, T>>:: iterator;
             explicit LRUCache (size_t capacity): capacity_(capacity) {}
 
-            template <typename F>
-            bool lookup_update (KeyT key, F slow_get_page)
+            LRUCache(const LRUCache&) = delete;
+            LRUCache& operator=(const LRUCache&) = delete;
+
+            template <typename F, typename H, typename G>
+            bool lookup_update (KeyT key, F SlowGetPage, H CallBack, G TransferContext)
             {
-                if (capacity_ == 0)
-                    return false;
 
                 auto hit = hash_table_.find(key);
                 if (hit != hash_table_.end())
@@ -26,18 +27,53 @@ namespace caches
                     items_list_.splice(items_list_.begin(), items_list_, node_pointer);
                     return true;
                 }
-
-                if (full())
-                {
-                    hash_table_.erase(items_list_.back().first);
-                    items_list_.pop_back();
-                }
                 
-                T page = slow_get_page(key);
-                items_list_.emplace_front(key, page);
-                hash_table_.emplace(key, items_list_.begin());
+                T page = SlowGetPage(key);
+                insert (key, page, CallBack, TransferContext);
                 return false;
                 
+            }
+
+            template <typename H, typename G>
+            void insert (KeyT key, T page, H CallBack, G TransferContext)
+            {
+                if (capacity_ == 0)
+                {
+                    CallBack(key, page, TransferContext);
+                    return;
+                }
+
+                if (!full())
+                {
+                    items_list_.emplace_front(key, page);
+                    try
+                    {
+                        hash_table_.emplace(key, items_list_.begin());
+                    } 
+                    catch (...)
+                    {
+                        items_list_.pop_front();
+                        throw;
+                    }
+                    return;
+                }
+
+                auto old_page = items_list_.back();
+                items_list_.emplace_front (key, page);
+                try
+                {
+                    hash_table_.emplace(key, items_list_.begin());
+                } 
+                catch (...)
+                {
+                    items_list_.pop_front();
+                    throw;
+                }
+                hash_table_.erase(old_page.first);
+                items_list_.pop_back();
+                
+                CallBack(old_page.first, old_page.second, TransferContext);
+                return;
             }
 
             bool full() const noexcept {
@@ -54,6 +90,18 @@ namespace caches
 
             size_t capacity() const noexcept {
                 return capacity_;
+            }
+
+            std:: optional<T> extract (KeyT key)
+            {
+                auto hash_key = hash_table_.find(key); 
+                if (hash_key == hash_table_.end())
+                    return std:: nullopt;
+                auto list_it = hash_key -> second;
+                T page = list_it -> second;
+                items_list_.erase(list_it);
+                hash_table_.erase(hash_key);
+                return page;
             }
 
         private:

@@ -1,6 +1,10 @@
 #pragma once
 
 #include <iostream>
+#include <cstddef>
+#include <deque>
+#include <optional>
+#include <stdexcept>
 
 #include "lru.hpp"
 #include "config.hpp"
@@ -11,30 +15,75 @@ namespace caches
         int id;
     };
 
-    inline page_t slow_get_page(int id) {
+    using CacheLevels = std:: deque<LRUCache<page_t, int>>;
+
+    struct TransferContext
+    {
+        CacheLevels& levels;
+        std:: size_t index_next_level;
+    };
+
+    inline page_t SlowGetPage(int id) {
         return page_t{id};
+    }
+
+    inline void CallBack(int key, page_t page, TransferContext *transfer_context)
+    {
+        if (transfer_context->index_next_level >= transfer_context->levels.size())
+            return;
+        auto& level = transfer_context->levels[transfer_context->index_next_level];
+        TransferContext next_context{ transfer_context->levels, transfer_context->index_next_level + 1};
+        level.insert(key, page, CallBack, &next_context);
     }
 
     inline void RunExperiment (const Config& config, std:: istream& in)
     {
-        (void) config;
-        size_t capacity = 0;
-        size_t counter_requests = 0;
-        int hits = 0;
+        std::size_t capacity = 0;
+        std::size_t counter_requests = 0;
+        std::size_t hits = 0;
 
         if (!(in >> capacity >> counter_requests))
-            return;
+            throw std:: runtime_error ("Invalid input parameters\n");
 
-        LRUCache <page_t, int> LRU(capacity);
+        const std::size_t number_levels = config.policies.size();
+        if (number_levels == 0)
+            throw std:: invalid_argument("At least one cache level is required\n");
 
-        for (int i = 0; i < (int)counter_requests; i++)
+        CacheLevels levels;
+        const std::size_t base_capacity = capacity / number_levels;
+        const std::size_t extra_pages = capacity % number_levels;
+
+        for (std::size_t level_index = 0; level_index < number_levels; ++level_index)
         {
-            page_t page;
-            in >> page.id;
-            if (LRU.lookup_update(page.id, slow_get_page))
+            if (config.policies[level_index] != Policy::LRU)
+                throw std::invalid_argument("Only LRU is implemented");
+
+            const std::size_t level_capacity = base_capacity + (level_index < extra_pages ? 1 : 0);
+            levels.emplace_back(level_capacity);
+        }
+
+        TransferContext transfer_context = {levels, 1};
+
+        for (std::size_t request_index = 0; request_index < counter_requests; ++request_index)
+        {
+            int key = 0;
+            if (!(in >> key))
+                throw std:: runtime_error ("Invalid input argument\n");
+
+            std::optional<page_t> page;
+            for (auto& level : levels)
             {
-                hits += 1;
+                page = level.extract(key);
+                if (page)
+                {
+                    ++hits;
+                    break;
+                }
             }
+
+            if (!page)
+                page = SlowGetPage(key);
+            levels[0].insert(key, *page, CallBack, &transfer_context);
         }
 
         std:: cout << hits << "\n"; 

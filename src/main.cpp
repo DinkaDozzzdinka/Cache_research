@@ -1,4 +1,5 @@
 #include <iostream>
+#include <exception>
 
 #include "config.hpp"
 #include "experiment.hpp"
@@ -12,8 +13,18 @@ int main(int argc, char* argv[])
         return 1;
     }
     
-    const caches:: Config config = caches:: ReadConfig(argv[1]);
-    caches:: RunExperiment (config, std:: cin);
+    try
+    {
+        const caches:: Config config = caches:: ReadConfig(argv[1]);
+        caches:: RunExperiment (config, std:: cin);
+        
+    }
+    catch(const std::exception& e)
+    {
+        std::cerr << e.what() << '\n';
+        return 1;
+    }
+    
     
     return 0;
 }
