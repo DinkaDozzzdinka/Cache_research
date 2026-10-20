@@ -1,6 +1,18 @@
 cmake_minimum_required(VERSION 3.16)
 project(cache_research CXX)
 
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+include(FetchContent)
+FetchContent_Declare(
+  googletest
+  URL https://github.com/google/googletest/archive/03597a01ee50ed33e9dfd640b249b4be3799d395.zip
+)
+# For Windows: Prevent overriding the parent project's compiler/linker settings
+set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
+FetchContent_MakeAvailable(googletest)
+
 if (CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
     add_compile_options(-Wall -Wextra -Wpedantic -Werror -O2)
 endif()
@@ -23,3 +35,17 @@ add_executable(cache_sim
 
 # Обязательная линковка!
 target_link_libraries(cache_sim PRIVATE cache_lib)
+
+enable_testing()
+
+add_executable(
+    cache_tests
+    tests/lru_test.cpp
+)
+target_link_libraries(
+  cache_tests PRIVATE cache_lib
+  GTest::gtest_main
+)
+
+include(GoogleTest)
+gtest_discover_tests(cache_tests)

@@ -1,0 +1,10 @@
+Тесты:
+1) GoogleTest подключение через CMake
+some links: 
+https://google.github.io/googletest/quickstart-cmake.html
+https://google.github.io/googletest/primer.html
+https://cmake.org/cmake/help/latest/module/GoogleTest.html#command:gtest_discover_tests
+
+cmake -S . -B build
+cmake --build build
+ctest --test-dir build --output-on-failure
