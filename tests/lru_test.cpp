@@ -76,3 +76,75 @@ TEST(LRUCacheTest, ZeroCapacity)
     EXPECT_EQ (local_counter_callback, 1u);
 }
 
+struct EvictionLog
+{
+    int calls = 0;
+    int last_key = 0;
+    int last_page = 0;
+};
+
+void RecordEviction(int key, int page, EvictionLog* log)
+{
+    ++log->calls;
+    log->last_key = key;
+    log->last_page = page;
+}
+
+int LoadTestPage(int key)
+{
+    return key * 100;
+}
+
+TEST(LRUCacheTest, HitUpdatesEvictionOrder)
+{
+    caches::LRUCache<int> cache(2);
+    EvictionLog log;
+
+    EXPECT_FALSE(cache.lookup_update(1, LoadTestPage, RecordEviction, &log));
+    EXPECT_FALSE(cache.lookup_update(2, LoadTestPage, RecordEviction, &log));
+    EXPECT_TRUE(cache.lookup_update(1, LoadTestPage, RecordEviction, &log));
+    EXPECT_FALSE(cache.lookup_update(3, LoadTestPage, RecordEviction, &log));
+
+    EXPECT_EQ(cache.size(), 2u);
+    EXPECT_EQ(log.calls, 1);
+    EXPECT_EQ(log.last_key, 2);
+    EXPECT_EQ(log.last_page, 200);
+    EXPECT_FALSE(cache.extract(2).has_value());
+    EXPECT_EQ(cache.size(), 2u);
+
+    auto first = cache.extract(1);
+    ASSERT_TRUE(first.has_value());
+    EXPECT_EQ(*first, 100);
+    auto third = cache.extract(3);
+    ASSERT_TRUE(third.has_value());
+    EXPECT_EQ(*third, 300);
+    EXPECT_TRUE(cache.empty());
+}
+
+TEST(LRUCacheTest, MissingExtractionPreservesEvictionOrder)
+{
+    caches::LRUCache<int> cache(2);
+    EvictionLog log;
+    cache.insert(1, 100, RecordEviction, &log);
+    cache.insert(2, 200, RecordEviction, &log);
+
+    auto missing = cache.extract(99);
+    EXPECT_FALSE(missing.has_value());
+    EXPECT_EQ(cache.size(), 2u);
+    EXPECT_EQ(log.calls, 0);
+
+    cache.insert(3, 300, RecordEviction, &log);
+    EXPECT_EQ(cache.size(), 2u);
+    EXPECT_EQ(log.calls, 1);
+    EXPECT_EQ(log.last_key, 1);
+    EXPECT_EQ(log.last_page, 100);
+    EXPECT_FALSE(cache.extract(1).has_value());
+
+    auto second = cache.extract(2);
+    ASSERT_TRUE(second.has_value());
+    EXPECT_EQ(*second, 200);
+    auto third = cache.extract(3);
+    ASSERT_TRUE(third.has_value());
+    EXPECT_EQ(*third, 300);
+    EXPECT_TRUE(cache.empty());
+}

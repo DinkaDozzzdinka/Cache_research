@@ -41,6 +41,7 @@ enable_testing()
 add_executable(
     cache_tests
     tests/lru_test.cpp
+    tests/experiment_test.cpp
 )
 target_link_libraries(
   cache_tests PRIVATE cache_lib

@@ -8,3 +8,4 @@ https://cmake.org/cmake/help/latest/module/GoogleTest.html#command:gtest_discove
 cmake -S . -B build
 cmake --build build
 ctest --test-dir build --output-on-failure
+
