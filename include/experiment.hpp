@@ -36,7 +36,7 @@ namespace caches
         level.insert(key, page, CallBack, &next_context);
     }
 
-    inline void RunExperiment (const Config& config, std:: istream& in)
+    inline size_t RunExperiment (const Config& config, std:: istream& in)
     {
         std::size_t capacity = 0;
         std::size_t counter_requests = 0;
@@ -86,7 +86,7 @@ namespace caches
             levels[0].insert(key, *page, CallBack, &transfer_context);
         }
 
-        std:: cout << hits << "\n"; 
+        return hits; 
 
     }
 }

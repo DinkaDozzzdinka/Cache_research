@@ -16,7 +16,8 @@ int main(int argc, char* argv[])
     try
     {
         const caches:: Config config = caches:: ReadConfig(argv[1]);
-        caches:: RunExperiment (config, std:: cin);
+        size_t hits = caches:: RunExperiment (config, std:: cin);
+        std:: cout << hits << '\n';
         
     }
     catch(const std::exception& e)

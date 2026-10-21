@@ -9,3 +9,5 @@ cmake -S . -B build
 cmake --build build
 ctest --test-dir build --output-on-failure
 
+Добавим теперь тесты из ввода:
+https://learn.microsoft.com/en-us/cpp/standard-library/basic-istringstream-class?view=msvc-170

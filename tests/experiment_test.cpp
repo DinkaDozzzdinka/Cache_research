@@ -1,5 +1,7 @@
-#include "experiment.hpp"
 #include <gtest/gtest.h>
+#include <sstream>
+#include "experiment.hpp"
+
 
 TEST(CacheHierarchyTest, CascadesEvictionsAcrossThreeLevels)
 {
@@ -105,4 +107,82 @@ TEST(CacheHierarchyTest, ForwardsThroughZeroCapacityLevel)
 
     for (auto& level : levels)
         EXPECT_TRUE(level.empty());
+}
+
+TEST (FullExperiment, CountsHitsAcrossTwoLevels)
+{
+    caches:: Config config;
+    config.policies.resize(2);
+    config.policies[0] = caches:: Policy:: LRU;
+    config.policies[1] = caches:: Policy:: LRU;
+    std:: istringstream input ("2 6 1 2 1 3 1 2"); 
+    size_t hits = caches:: RunExperiment (config, input);
+    EXPECT_EQ (hits, 2u);
+}
+
+TEST (FullExperiment, CountsHitsAcrossThreeLevels)
+{
+    caches:: Config config;
+    config.policies.resize(3);
+    config.policies[0] = caches:: Policy:: LRU;
+    config.policies[1] = caches:: Policy:: LRU;
+    config.policies[2] = caches:: Policy:: LRU;
+    std:: istringstream input ("3 6 1 2 3 1 2 3"); 
+    size_t hits = caches:: RunExperiment (config, input);
+    EXPECT_EQ (hits, 3u);
+}
+
+TEST (FullExperiment, HandlesMoreLevelsThanCapacity)
+{
+    caches:: Config config;
+    config.policies.resize(5);
+    config.policies[0] = caches:: Policy:: LRU;
+    config.policies[1] = caches:: Policy:: LRU;
+    config.policies[2] = caches:: Policy:: LRU;
+    config.policies[3] = caches:: Policy:: LRU;
+    config.policies[4] = caches:: Policy:: LRU;
+    std:: istringstream input ("2 6 1 2 1 2 1 2"); 
+    size_t hits = caches:: RunExperiment (config, input);
+    EXPECT_EQ (hits, 4u);
+}
+
+TEST (FullExperiment, ZeroCapacityHasNoHit)
+{
+    caches:: Config config;
+    config.policies.resize(3);
+    config.policies[0] = caches:: Policy:: LRU;
+    config.policies[1] = caches:: Policy:: LRU;
+    config.policies[2] = caches:: Policy:: LRU;
+    std:: istringstream input ("0 3 1 1 1"); 
+    size_t hits = caches:: RunExperiment (config, input);
+    EXPECT_EQ (hits, 0u);
+}
+
+TEST (FullExperiment, NoRequestsHasNoHits)
+{
+    caches:: Config config;
+    config.policies.resize(2);
+    config.policies[0] = caches:: Policy:: LRU;
+    config.policies[1] = caches:: Policy:: LRU;
+    std:: istringstream input ("2 0"); 
+    size_t hits = caches:: RunExperiment (config, input);
+    EXPECT_EQ (hits, 0u);
+}
+
+TEST (FullExperiment, NoLevelsEmptyConfig)
+{
+    caches:: Config config;
+    config.policies.resize(0);
+    std:: istringstream input ("2 0");
+    EXPECT_THROW (caches:: RunExperiment (config, input), std::invalid_argument);
+}
+
+TEST (FullExperiment, NotEnoughRequests)
+{
+    caches:: Config config;
+    config.policies.resize(2);
+    config.policies[0] = caches:: Policy:: LRU;
+    config.policies[1] = caches:: Policy:: LRU;
+    std:: istringstream input ("2 3 1");
+    EXPECT_THROW (caches:: RunExperiment (config, input), std::runtime_error);
 }
