@@ -16,7 +16,7 @@ namespace caches
         int id;
     };
     
-    using CacheLevels = std:: deque<LRUCache<page_t, int>>;
+    using CacheLevels = std:: deque<CacheLevel<page_t, int>>;
 
     struct TransferContext
     {
@@ -56,11 +56,8 @@ namespace caches
 
         for (std::size_t level_index = 0; level_index < number_levels; ++level_index)
         {
-            if (config.policies[level_index] != Policy::LRU)
-                throw std::invalid_argument("Only LRU is implemented");
-
             const std::size_t level_capacity = base_capacity + (level_index < extra_pages ? 1 : 0);
-            levels.emplace_back(level_capacity);
+            levels.emplace_back(config.policies[level_index], level_capacity);
         }
 
         TransferContext transfer_context = {levels, 1};

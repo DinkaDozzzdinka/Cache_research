@@ -70,6 +70,27 @@ namespace caches
                 return capacity_;
             }
 
+            std:: size_t size() const 
+            {
+                auto* lru = std::get_if<LRUCache<T, KeyT>>(&cache_);
+                if (lru != nullptr)
+                    return lru->size();
+                auto* lfu = std::get_if<LFUCache<T, KeyT>>(&cache_);
+                if (lfu != nullptr)
+                    return lfu->size();
+                throw std::logic_error("Cache level has no active size");
+            }
+
+            bool empty() const 
+            {
+                return size() == 0;
+            }
+
+            bool full() const 
+            {
+                return size() >= capacity_;
+            }
+
         private:
             std::variant<std::monostate, LRUCache<T, KeyT>, LFUCache<T, KeyT>> cache_;
             std::size_t capacity_;

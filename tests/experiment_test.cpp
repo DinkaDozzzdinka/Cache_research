@@ -6,9 +6,9 @@
 TEST(CacheHierarchyTest, CascadesEvictionsAcrossThreeLevels)
 {
     caches::CacheLevels levels;
-    levels.emplace_back(1);
-    levels.emplace_back(1);
-    levels.emplace_back(1);
+    levels.emplace_back(caches::Policy::LRU, 1);
+    levels.emplace_back(caches::Policy::LRU, 1);
+    levels.emplace_back(caches::Policy::LRU, 1);
     caches::TransferContext context {levels, 1};
 
     levels[0].insert(1, caches::page_t{1}, caches::CallBack, &context);
@@ -45,8 +45,8 @@ TEST(CacheHierarchyTest, CascadesEvictionsAcrossThreeLevels)
 TEST(CacheHierarchyTest, PromotesPageWithoutDuplicates)
 {
     caches::CacheLevels levels;
-    levels.emplace_back(1);
-    levels.emplace_back(1);
+    levels.emplace_back(caches::Policy::LRU, 1);
+    levels.emplace_back(caches::Policy::LRU, 1);
     caches::TransferContext context{levels, 1};
 
     levels[0].insert(1, caches::page_t{1}, caches::CallBack, &context);
@@ -78,9 +78,9 @@ TEST(CacheHierarchyTest, PromotesPageWithoutDuplicates)
 TEST(CacheHierarchyTest, ForwardsThroughZeroCapacityLevel)
 {
     caches::CacheLevels levels;
-    levels.emplace_back(1);
-    levels.emplace_back(0);
-    levels.emplace_back(1);
+    levels.emplace_back(caches::Policy::LRU, 1);
+    levels.emplace_back(caches::Policy::LRU, 0);
+    levels.emplace_back(caches::Policy::LRU, 1);
     caches::TransferContext context{levels, 1};
 
     levels[0].insert(1, caches::page_t{1}, caches::CallBack, &context);
@@ -185,4 +185,33 @@ TEST (FullExperiment, NotEnoughRequests)
     config.policies[1] = caches:: Policy:: LRU;
     std:: istringstream input ("2 3 1");
     EXPECT_THROW (caches:: RunExperiment (config, input), std::runtime_error);
+}
+
+TEST (FullExperiment, MixedPolicy)
+{
+    caches:: Config config;
+    config.policies.resize(2);
+    config.policies[0] = caches:: Policy:: LFU;
+    config.policies[1] = caches:: Policy:: LRU;
+    std:: istringstream input ("3 7 1 1 2 3 2 4 1"); 
+    size_t hits = caches:: RunExperiment (config, input);
+    EXPECT_EQ (hits, 3u);
+}
+
+TEST(FullExperiment, SingleLevelLRUUsesRecency)
+{
+    caches::Config config;
+    config.policies = {caches::Policy::LRU};
+    std::istringstream input("2 6 1 1 2 3 1 2");
+
+    EXPECT_EQ(caches::RunExperiment(config, input), 1u);
+}
+
+TEST(FullExperiment, SingleLevelLFUUsesFrequency)
+{
+    caches::Config config;
+    config.policies = {caches::Policy::LFU};
+    std::istringstream input("2 6 1 1 2 3 1 2");
+
+    EXPECT_EQ(caches::RunExperiment(config, input), 2u);
 }
