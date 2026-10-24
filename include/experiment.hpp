@@ -6,6 +6,7 @@
 #include <optional>
 #include <stdexcept>
 
+#include "cache_level.hpp"
 #include "lru.hpp"
 #include "config.hpp"
 
@@ -14,7 +15,7 @@ namespace caches
     struct page_t {
         int id;
     };
-
+    
     using CacheLevels = std:: deque<LRUCache<page_t, int>>;
 
     struct TransferContext
@@ -68,15 +69,20 @@ namespace caches
         {
             int key = 0;
             if (!(in >> key))
-                throw std:: runtime_error ("Invalid input argument\n");
-
-            std::optional<page_t> page;
-            for (auto& level : levels)
+            throw std:: runtime_error ("Invalid input argument\n");
+            
+            if (levels[0].touch(key))
             {
-                page = level.extract(key);
+                hits++;
+                continue;
+            }
+            std::optional<page_t> page;
+            for (std:: size_t index_level = 1; index_level < levels.size(); index_level++)
+            {
+                page = levels[index_level].extract(key);
                 if (page)
                 {
-                    ++hits;
+                    hits++;
                     break;
                 }
             }
@@ -89,4 +95,5 @@ namespace caches
         return hits; 
 
     }
+    
 }

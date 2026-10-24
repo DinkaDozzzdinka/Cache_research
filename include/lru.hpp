@@ -19,7 +19,17 @@ namespace caches
             template <typename F, typename H, typename G>
             bool lookup_update (KeyT key, F SlowGetPage, H CallBack, G TransferContext)
             {
+                if (touch(key))
+                    return true;
 
+                T page = SlowGetPage(key);
+                insert (key, page, CallBack, TransferContext);
+                return false;
+                
+            }
+
+            bool touch (KeyT key)
+            {
                 auto hit = hash_table_.find(key);
                 if (hit != hash_table_.end())
                 {
@@ -27,11 +37,7 @@ namespace caches
                     items_list_.splice(items_list_.begin(), items_list_, node_pointer);
                     return true;
                 }
-                
-                T page = SlowGetPage(key);
-                insert (key, page, CallBack, TransferContext);
                 return false;
-                
             }
 
             template <typename H, typename G>
