@@ -44,6 +44,7 @@ add_executable(
     tests/experiment_test.cpp
     tests/lfu_test.cpp
     tests/cache_level_test.cpp
+    tests/ideal_test.cpp
 )
 target_link_libraries(
   cache_tests PRIVATE cache_lib
