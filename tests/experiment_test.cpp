@@ -229,6 +229,6 @@ TEST(FullExperiment, CompareIdealHitsAndHierarchyHits)
     caches::ExperimentInput experiment_input{2, {1, 2, 3, 1, 2, 3}};
 
     EXPECT_EQ(caches::CountHierarchyHits(config, &experiment_input), 0u);
-    EXPECT_EQ(caches::CountIdealHits(experiment_input.capacity, experiment_input.requests), 2u);
+    EXPECT_EQ(caches::CountIdealHits(&experiment_input), 2u);
 }
 

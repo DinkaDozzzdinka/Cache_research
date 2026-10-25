@@ -10,6 +10,7 @@
 #include "cache_level.hpp"
 #include "lru.hpp"
 #include "config.hpp"
+#include "ideal.hpp"
 
 namespace caches
 {
@@ -18,6 +19,11 @@ namespace caches
         std:: size_t capacity;
         std:: vector<int> requests;
     };
+
+    inline std::size_t CountIdealHits(const ExperimentInput* input)
+    {
+        return CountIdealHits(input->capacity, input->requests);
+    }
 
     struct page_t 
     {

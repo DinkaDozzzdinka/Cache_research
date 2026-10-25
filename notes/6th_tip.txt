@@ -7,3 +7,9 @@
 1 -> [0, 3]
 2 -> [1, 4]
 3 -> [2, 5]
+
+
+./build/cache_sim configs/lru2.cfg < data/requests.in
+./build/cache_sim configs/lru2.cfg --compare < data/requests.in
+
+добавлены 2 вариации в main(). Теперь можно сравнивать идеальный кеш с другими политиками
