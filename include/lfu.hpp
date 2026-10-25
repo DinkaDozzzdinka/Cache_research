@@ -12,12 +12,40 @@ namespace  caches
     class LFUCache
     {
         public:
-
+        
         explicit LFUCache (std:: size_t capacity): capacity_(capacity) {}
-
+        
         LFUCache(const LFUCache&) = delete;
         LFUCache& operator=(const LFUCache&) = delete;
+        
+        template <typename F, typename H, typename G>
+        bool lookup_update (KeyT key, F SlowGetPage, H CallBack, G TransferContext)
+        {
+            if (touch(key))
+                return true;
+            
+            T page = SlowGetPage(key);
+            insert (key, page, CallBack, TransferContext);
+            return false;
+        }
 
+        
+        bool touch (KeyT key)
+        {
+            auto hit = hash_table_.find(key);
+            if (hit == hash_table_.end())
+                return false;
+            auto& entry = hit -> second;
+            auto old_group = frequency_groups_.find(entry.frequency);
+            auto& new_list = frequency_groups_[entry.frequency + 1];
+            new_list.splice(new_list.begin(), old_group -> second, entry.keyIt);
+            entry.frequency ++;
+            if (old_group -> second.empty())
+                frequency_groups_.erase(old_group);
+            return true;
+        }
+
+        
         template <typename H, typename G>
         void insert (KeyT key, T page, H CallBack, G TransferContext)
         {
@@ -54,7 +82,7 @@ namespace  caches
                 }
                 return;                
             }
-
+            
             auto min_group = frequency_groups_.begin();
             auto long_used_key = min_group -> second.back();
             T long_used_page = hash_table_.find(long_used_key) -> second.page;
@@ -91,33 +119,6 @@ namespace  caches
             CallBack(long_used_key, long_used_page, TransferContext);
             return;
         }
-
-        template <typename F, typename H, typename G>
-        bool lookup_update (KeyT key, F SlowGetPage, H CallBack, G TransferContext)
-        {
-            if (touch(key))
-                return true;
-            
-            T page = SlowGetPage(key);
-            insert (key, page, CallBack, TransferContext);
-            return false;
-        }
-
-        bool touch (KeyT key)
-        {
-            auto hit = hash_table_.find(key);
-            if (hit == hash_table_.end())
-                return false;
-            auto& entry = hit -> second;
-            auto old_group = frequency_groups_.find(entry.frequency);
-            auto& new_list = frequency_groups_[entry.frequency + 1];
-            new_list.splice(new_list.begin(), old_group -> second, entry.keyIt);
-            entry.frequency ++;
-            if (old_group -> second.empty())
-                frequency_groups_.erase(old_group);
-            return true;
-        }
-
         
         bool full() const noexcept {
             return hash_table_.size() >= capacity_;

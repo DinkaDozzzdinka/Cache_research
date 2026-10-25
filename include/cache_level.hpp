@@ -8,6 +8,7 @@
 #include "config.hpp"
 #include "lfu.hpp"
 #include "lru.hpp"
+#include "two_q.hpp"
 
 namespace caches
 {
@@ -21,8 +22,10 @@ namespace caches
                     cache_.template emplace<LRUCache<T, KeyT>>(capacity);
                 else if (policy == Policy::LFU)
                     cache_.template emplace<LFUCache<T, KeyT>>(capacity);
+                else if (policy == Policy::TWO_Q)
+                    cache_.template emplace<TwoQCache<T, KeyT>>(capacity);
                 else
-                    throw std::invalid_argument("Only LRU and LFU are implemented");
+                    throw std::invalid_argument("Only LRU, LFU and 2Q are implemented");
             }
 
             bool touch(KeyT key)
@@ -33,6 +36,9 @@ namespace caches
                 auto* lfu = std::get_if<LFUCache<T, KeyT>>(&cache_);
                 if (lfu != nullptr)
                     return lfu->touch(key);
+                auto* two_q = std::get_if<TwoQCache<T, KeyT>>(&cache_);
+                if (two_q != nullptr)
+                    return two_q->touch(key);
                 throw std::logic_error("Cache level has no active policy");
             }
 
@@ -44,6 +50,9 @@ namespace caches
                 auto* lfu = std::get_if<LFUCache<T, KeyT>>(&cache_);
                 if (lfu != nullptr)
                     return lfu->extract(key);
+                auto* two_q = std::get_if<TwoQCache<T, KeyT>>(&cache_);
+                if (two_q != nullptr)
+                    return two_q->extract(key);
                 throw std::logic_error("Cache level has no active policy");
             }
 
@@ -62,6 +71,12 @@ namespace caches
                     lfu->insert(key, page, CallBack, TransferContext);
                     return;
                 }
+                auto* two_q = std::get_if<TwoQCache<T, KeyT>>(&cache_);
+                if (two_q != nullptr)
+                {
+                    two_q->insert(key, page, CallBack, TransferContext);
+                    return;
+                }
                 throw std::logic_error("Cache level has no active policy");
             }
 
@@ -78,6 +93,9 @@ namespace caches
                 auto* lfu = std::get_if<LFUCache<T, KeyT>>(&cache_);
                 if (lfu != nullptr)
                     return lfu->size();
+                auto* two_q = std::get_if<TwoQCache<T, KeyT>>(&cache_);
+                if (two_q != nullptr)
+                    return two_q->size();
                 throw std::logic_error("Cache level has no active size");
             }
 
@@ -92,7 +110,7 @@ namespace caches
             }
 
         private:
-            std::variant<std::monostate, LRUCache<T, KeyT>, LFUCache<T, KeyT>> cache_;
+            std::variant<std::monostate, LRUCache<T, KeyT>, LFUCache<T, KeyT>, TwoQCache<T, KeyT>> cache_;
             std::size_t capacity_;
     };
 }

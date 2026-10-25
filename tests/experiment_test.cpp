@@ -232,3 +232,66 @@ TEST(FullExperiment, CompareIdealHitsAndHierarchyHits)
     EXPECT_EQ(caches::CountIdealHits(&experiment_input), 2u);
 }
 
+TEST(FullExperiment, SingleLevelTwoQCountsGhostLookupAsMiss)
+{
+    caches::Config config;
+    config.policies = {caches::Policy::TWO_Q};
+    caches::ExperimentInput input{3, {1, 2, 3, 4, 1, 1, 5, 6, 1}};
+
+    EXPECT_EQ(caches::CountHierarchyHits(config, &input), 2u);
+    EXPECT_EQ(caches::CountIdealHits(&input), 3u);
+}
+
+TEST(FullExperiment, MixedTwoQHierarchyPromotesFromLowerLevel)
+{
+    caches::Config config;
+    config.policies = {caches::Policy::TWO_Q, caches::Policy::LRU};
+    caches::ExperimentInput input{3, {1, 2, 3, 1, 1, 4, 3}};
+
+    EXPECT_EQ(caches::CountHierarchyHits(config, &input), 3u);
+}
+
+TEST(CacheHierarchyTest, TwoQPromotionCascadesWithoutDuplicatePages)
+{
+    caches::CacheLevels levels;
+    levels.emplace_back(caches::Policy::TWO_Q, 2);
+    levels.emplace_back(caches::Policy::LFU, 0);
+    levels.emplace_back(caches::Policy::LRU, 1);
+    caches::TransferContext context{levels, 1};
+
+    for (int key : {1, 2, 3})
+        levels[0].insert(key, caches::page_t{key * 100}, caches::CallBack, &context);
+    EXPECT_FALSE(levels[0].touch(1));
+    auto page = levels[2].extract(1);
+    ASSERT_TRUE(page.has_value());
+    EXPECT_EQ(page->id, 100);
+    levels[0].insert(1, *page, caches::CallBack, &context);
+
+    EXPECT_EQ(levels[0].size(), 2u);
+    EXPECT_TRUE(levels[1].empty());
+    EXPECT_EQ(levels[2].size(), 1u);
+    EXPECT_FALSE(levels[0].extract(2).has_value());
+    EXPECT_FALSE(levels[2].extract(1).has_value());
+    EXPECT_FALSE(levels[2].extract(3).has_value());
+    page = levels[0].extract(1);
+    ASSERT_TRUE(page.has_value());
+    EXPECT_EQ(page->id, 100);
+    page = levels[0].extract(3);
+    ASSERT_TRUE(page.has_value());
+    EXPECT_EQ(page->id, 300);
+    page = levels[2].extract(2);
+    ASSERT_TRUE(page.has_value());
+    EXPECT_EQ(page->id, 200);
+    EXPECT_TRUE(levels[0].empty());
+    EXPECT_TRUE(levels[2].empty());
+}
+
+TEST(FullExperiment, TwoQHierarchyHandlesMoreLevelsThanCapacity)
+{
+    caches::Config config;
+    config.policies = {caches::Policy::TWO_Q, caches::Policy::LFU, caches::Policy::TWO_Q};
+    caches::ExperimentInput input{1, {1, 1, 2, 1}};
+
+    EXPECT_EQ(caches::CountHierarchyHits(config, &input), 1u);
+}
+

@@ -76,7 +76,7 @@ TEST(CacheLevelTest, RoutesLFUWithStringKeys) {
 }
 
 TEST(CacheLevelTest, StoresStringPagesWithIntegerKeys) {
-    for (auto policy : {caches::Policy::LRU, caches::Policy::LFU}) {
+    for (auto policy : {caches::Policy::LRU, caches::Policy::LFU, caches::Policy::TWO_Q}) {
         caches::CacheLevel<std::string> level(policy, 1);
         CacheLevelPageLog log;
 
@@ -97,7 +97,7 @@ TEST(CacheLevelTest, StoresStringPagesWithIntegerKeys) {
 }
 
 TEST(CacheLevelTest, ForwardsPagesAtZeroCapacity) {
-    for (auto policy : {caches::Policy::LRU, caches::Policy::LFU}) {
+    for (auto policy : {caches::Policy::LRU, caches::Policy::LFU, caches::Policy::TWO_Q}) {
         caches::CacheLevel<int, std::string> level(policy, 0);
         CacheLevelKeyLog log;
 
@@ -113,7 +113,31 @@ TEST(CacheLevelTest, ForwardsPagesAtZeroCapacity) {
 }
 
 TEST(CacheLevelTest, RejectsUnsupportedPolicies) {
-    for (auto policy : {caches::Policy::ARC, caches::Policy::TWO_Q, caches::Policy::LIRS}) {
+    for (auto policy : {caches::Policy::ARC, caches::Policy::LIRS}) {
         EXPECT_THROW(caches::CacheLevel<int>(policy, 2), std::invalid_argument);
     }
+}
+
+TEST(CacheLevelTest, RoutesTwoQWithStringKeys) {
+    caches::CacheLevel<int, std::string> level(caches::Policy::TWO_Q, 2);
+    CacheLevelKeyLog log;
+
+    EXPECT_TRUE(level.empty());
+    level.insert("alpha", 11, RecordCacheLevelKey, &log);
+    level.insert("beta", 22, RecordCacheLevelKey, &log);
+    EXPECT_TRUE(level.touch("alpha"));
+    level.insert("gamma", 33, RecordCacheLevelKey, &log);
+    EXPECT_EQ(log.last_key, "alpha");
+    EXPECT_FALSE(level.touch("alpha"));
+    EXPECT_FALSE(level.extract("alpha").has_value());
+    level.insert("alpha", 44, RecordCacheLevelKey, &log);
+
+    EXPECT_EQ(log.calls, 2);
+    EXPECT_EQ(log.last_key, "beta");
+    EXPECT_EQ(log.last_page, 22);
+    EXPECT_EQ(level.size(), 2u);
+    EXPECT_TRUE(level.full());
+    EXPECT_EQ(level.extract("alpha"), std::optional<int>{44});
+    EXPECT_EQ(level.extract("gamma"), std::optional<int>{33});
+    EXPECT_TRUE(level.empty());
 }
