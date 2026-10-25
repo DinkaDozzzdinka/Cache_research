@@ -295,3 +295,71 @@ TEST(FullExperiment, TwoQHierarchyHandlesMoreLevelsThanCapacity)
     EXPECT_EQ(caches::CountHierarchyHits(config, &input), 1u);
 }
 
+TEST(FullExperiment, AllPoliciesHandleRequestsAndZeroCapacity)
+{
+    caches::Config config;
+    config.policies = {caches::Policy::ARC, caches::Policy::LIRS, caches::Policy::TWO_Q,
+                       caches::Policy::LFU, caches::Policy::LRU};
+    caches::ExperimentInput input{3, {1, 2, 3, 1, 2, 3}};
+    EXPECT_EQ(caches::CountHierarchyHits(config, &input), 3u);
+    EXPECT_EQ(caches::CountHierarchyHits(config, &input), 3u);
+    EXPECT_EQ(caches::CountIdealHits(&input), 3u);
+    input.capacity = 0;
+    EXPECT_EQ(caches::CountHierarchyHits(config, &input), 0u);
+}
+
+TEST(FullExperiment, RemainingSingleLevelPoliciesUseTheirOwnReplacementRules)
+{
+    caches::ExperimentInput arc_input{2, {1, 2, 1, 3, 2, 1, 4, 3, 2, 5}};
+    caches::Config arc_config;
+    arc_config.policies = {caches::Policy::ARC};
+    EXPECT_EQ(caches::CountHierarchyHits(arc_config, &arc_input), 1u);
+
+    caches::ExperimentInput lirs_input{3, {1, 2, 3, 4, 3, 5, 5, 2, 6}};
+    caches::Config lirs_config;
+    lirs_config.policies = {caches::Policy::LIRS};
+    EXPECT_EQ(caches::CountHierarchyHits(lirs_config, &lirs_input), 2u);
+}
+
+TEST(CacheHierarchyTest, RemainingPoliciesPromoteThroughZeroCapacityWithoutDuplicates)
+{
+    for (auto policy : {caches::Policy::ARC, caches::Policy::LIRS})
+    {
+        caches::CacheLevels levels;
+        levels.emplace_back(policy, 2);
+        levels.emplace_back(caches::Policy::TWO_Q, 0);
+        levels.emplace_back(caches::Policy::LRU, 1);
+        caches::TransferContext context{levels, 1};
+        for (int key : {1, 2, 3})
+            levels[0].insert(key, caches::page_t{key * 100}, caches::CallBack, &context);
+
+        const int promoted_key = policy == caches::Policy::ARC ? 1 : 2;
+        auto page = levels[2].extract(promoted_key);
+        ASSERT_TRUE(page.has_value());
+        EXPECT_EQ(page->id, promoted_key * 100);
+        levels[0].insert(promoted_key, *page, caches::CallBack, &context);
+
+        const int lower_key = policy == caches::Policy::ARC ? 2 : 3;
+        EXPECT_EQ(levels[0].size(), 2u);
+        EXPECT_TRUE(levels[1].empty());
+        EXPECT_EQ(levels[2].size(), 1u);
+        for (int key : {1, 2, 3})
+        {
+            auto upper = levels[0].extract(key);
+            auto lower = levels[2].extract(key);
+            EXPECT_EQ(upper.has_value(), key != lower_key);
+            EXPECT_EQ(lower.has_value(), key == lower_key);
+            if (upper)
+            {
+                EXPECT_EQ(upper->id, key * 100);
+            }
+            if (lower)
+            {
+                EXPECT_EQ(lower->id, key * 100);
+            }
+        }
+        EXPECT_TRUE(levels[0].empty());
+        EXPECT_TRUE(levels[2].empty());
+    }
+}
+

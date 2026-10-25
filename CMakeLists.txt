@@ -46,6 +46,7 @@ add_executable(
     tests/cache_level_test.cpp
     tests/ideal_test.cpp
     tests/two_q_test.cpp
+    tests/adaptive_cache_test.cpp
 )
 target_link_libraries(
   cache_tests PRIVATE cache_lib
