@@ -1,6 +1,7 @@
 #include <gtest/gtest.h>
 #include <sstream>
 #include "experiment.hpp"
+#include "ideal.hpp"
 
 
 TEST(CacheHierarchyTest, CascadesEvictionsAcrossThreeLevels)
@@ -116,7 +117,8 @@ TEST (FullExperiment, CountsHitsAcrossTwoLevels)
     config.policies[0] = caches:: Policy:: LRU;
     config.policies[1] = caches:: Policy:: LRU;
     std:: istringstream input ("2 6 1 2 1 3 1 2"); 
-    size_t hits = caches:: RunExperiment (config, input);
+    auto experiment_input = caches::ReadExperimentInput(input);
+    size_t hits = caches::CountHierarchyHits(config, &experiment_input);
     EXPECT_EQ (hits, 2u);
 }
 
@@ -128,7 +130,8 @@ TEST (FullExperiment, CountsHitsAcrossThreeLevels)
     config.policies[1] = caches:: Policy:: LRU;
     config.policies[2] = caches:: Policy:: LRU;
     std:: istringstream input ("3 6 1 2 3 1 2 3"); 
-    size_t hits = caches:: RunExperiment (config, input);
+    auto experiment_input = caches::ReadExperimentInput(input);
+    size_t hits = caches::CountHierarchyHits(config, &experiment_input);
     EXPECT_EQ (hits, 3u);
 }
 
@@ -142,7 +145,8 @@ TEST (FullExperiment, HandlesMoreLevelsThanCapacity)
     config.policies[3] = caches:: Policy:: LRU;
     config.policies[4] = caches:: Policy:: LRU;
     std:: istringstream input ("2 6 1 2 1 2 1 2"); 
-    size_t hits = caches:: RunExperiment (config, input);
+    auto experiment_input = caches::ReadExperimentInput(input);
+    size_t hits = caches::CountHierarchyHits(config, &experiment_input);
     EXPECT_EQ (hits, 4u);
 }
 
@@ -154,7 +158,8 @@ TEST (FullExperiment, ZeroCapacityHasNoHit)
     config.policies[1] = caches:: Policy:: LRU;
     config.policies[2] = caches:: Policy:: LRU;
     std:: istringstream input ("0 3 1 1 1"); 
-    size_t hits = caches:: RunExperiment (config, input);
+    auto experiment_input = caches::ReadExperimentInput(input);
+    size_t hits = caches::CountHierarchyHits(config, &experiment_input);
     EXPECT_EQ (hits, 0u);
 }
 
@@ -165,7 +170,8 @@ TEST (FullExperiment, NoRequestsHasNoHits)
     config.policies[0] = caches:: Policy:: LRU;
     config.policies[1] = caches:: Policy:: LRU;
     std:: istringstream input ("2 0"); 
-    size_t hits = caches:: RunExperiment (config, input);
+    auto experiment_input = caches::ReadExperimentInput(input);
+    size_t hits = caches::CountHierarchyHits(config, &experiment_input);
     EXPECT_EQ (hits, 0u);
 }
 
@@ -174,17 +180,14 @@ TEST (FullExperiment, NoLevelsEmptyConfig)
     caches:: Config config;
     config.policies.resize(0);
     std:: istringstream input ("2 0");
-    EXPECT_THROW (caches:: RunExperiment (config, input), std::invalid_argument);
+    auto experiment_input = caches::ReadExperimentInput(input);
+    EXPECT_THROW(caches::CountHierarchyHits(config, &experiment_input), std::invalid_argument);
 }
 
 TEST (FullExperiment, NotEnoughRequests)
 {
-    caches:: Config config;
-    config.policies.resize(2);
-    config.policies[0] = caches:: Policy:: LRU;
-    config.policies[1] = caches:: Policy:: LRU;
     std:: istringstream input ("2 3 1");
-    EXPECT_THROW (caches:: RunExperiment (config, input), std::runtime_error);
+    EXPECT_THROW(caches::ReadExperimentInput(input), std::runtime_error);
 }
 
 TEST (FullExperiment, MixedPolicy)
@@ -194,7 +197,8 @@ TEST (FullExperiment, MixedPolicy)
     config.policies[0] = caches:: Policy:: LFU;
     config.policies[1] = caches:: Policy:: LRU;
     std:: istringstream input ("3 7 1 1 2 3 2 4 1"); 
-    size_t hits = caches:: RunExperiment (config, input);
+    auto experiment_input = caches::ReadExperimentInput(input);
+    size_t hits = caches::CountHierarchyHits(config, &experiment_input);
     EXPECT_EQ (hits, 3u);
 }
 
@@ -204,7 +208,8 @@ TEST(FullExperiment, SingleLevelLRUUsesRecency)
     config.policies = {caches::Policy::LRU};
     std::istringstream input("2 6 1 1 2 3 1 2");
 
-    EXPECT_EQ(caches::RunExperiment(config, input), 1u);
+    auto experiment_input = caches::ReadExperimentInput(input);
+    EXPECT_EQ(caches::CountHierarchyHits(config, &experiment_input), 1u);
 }
 
 TEST(FullExperiment, SingleLevelLFUUsesFrequency)
@@ -213,5 +218,17 @@ TEST(FullExperiment, SingleLevelLFUUsesFrequency)
     config.policies = {caches::Policy::LFU};
     std::istringstream input("2 6 1 1 2 3 1 2");
 
-    EXPECT_EQ(caches::RunExperiment(config, input), 2u);
+    auto experiment_input = caches::ReadExperimentInput(input);
+    EXPECT_EQ(caches::CountHierarchyHits(config, &experiment_input), 2u);
 }
+
+TEST(FullExperiment, CompareIdealHitsAndHierarchyHits)
+{
+    caches::Config config;
+    config.policies = {caches::Policy::LRU};
+    caches::ExperimentInput experiment_input{2, {1, 2, 3, 1, 2, 3}};
+
+    EXPECT_EQ(caches::CountHierarchyHits(config, &experiment_input), 0u);
+    EXPECT_EQ(caches::CountIdealHits(experiment_input.capacity, experiment_input.requests), 2u);
+}
+

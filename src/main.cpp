@@ -1,5 +1,6 @@
 #include <iostream>
 #include <exception>
+#include <string>
 
 #include "config.hpp"
 #include "experiment.hpp"
@@ -16,7 +17,7 @@ int main(int argc, char* argv[])
     try
     {
         const caches:: Config config = caches:: ReadConfig(argv[1]);
-        size_t hits = caches:: RunExperiment (config, std:: cin);
+        size_t hits = caches:: RunExperiment (config);
         std:: cout << hits << '\n';
         
     }

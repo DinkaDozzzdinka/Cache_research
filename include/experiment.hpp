@@ -5,6 +5,7 @@
 #include <deque>
 #include <optional>
 #include <stdexcept>
+#include <vector>
 
 #include "cache_level.hpp"
 #include "lru.hpp"
@@ -12,7 +13,14 @@
 
 namespace caches
 {
-    struct page_t {
+    struct ExperimentInput
+    {
+        std:: size_t capacity;
+        std:: vector<int> requests;
+    };
+
+    struct page_t 
+    {
         int id;
     };
     
@@ -37,43 +45,51 @@ namespace caches
         level.insert(key, page, CallBack, &next_context);
     }
 
-    inline size_t RunExperiment (const Config& config, std:: istream& in)
+    inline ExperimentInput ReadExperimentInput(std::istream& in)
     {
-        std::size_t capacity = 0;
-        std::size_t counter_requests = 0;
-        std::size_t hits = 0;
+        std:: size_t counter_requests = 0;
 
-        if (!(in >> capacity >> counter_requests))
+        ExperimentInput experment_input;
+        if (!(in >> experment_input.capacity >> counter_requests))
             throw std:: runtime_error ("Invalid input parameters\n");
 
-        const std::size_t number_levels = config.policies.size();
+        for (std:: size_t index = 0; index < counter_requests; index++)
+        {
+            int key = 0;
+            if (!(in >> key))
+                throw std:: runtime_error ("Invalid input argument\n");
+            experment_input.requests.push_back(key);
+        }
+
+        return experment_input;
+    }
+
+    inline std:: size_t CountHierarchyHits(const Config& config, ExperimentInput* experiment_input)
+    {
+        const std:: size_t number_levels = config.policies.size();
         if (number_levels == 0)
             throw std:: invalid_argument("At least one cache level is required\n");
-
         CacheLevels levels;
-        const std::size_t base_capacity = capacity / number_levels;
-        const std::size_t extra_pages = capacity % number_levels;
+        const std:: size_t base_capacity = experiment_input->capacity / number_levels;
+        const std:: size_t extra_pages = experiment_input->capacity % number_levels;
+        std:: size_t hits = 0;
 
-        for (std::size_t level_index = 0; level_index < number_levels; ++level_index)
+        for (std:: size_t level_index = 0; level_index < number_levels; ++level_index)
         {
-            const std::size_t level_capacity = base_capacity + (level_index < extra_pages ? 1 : 0);
+            const std:: size_t level_capacity = base_capacity + (level_index < extra_pages ? 1 : 0);
             levels.emplace_back(config.policies[level_index], level_capacity);
         }
 
         TransferContext transfer_context = {levels, 1};
 
-        for (std::size_t request_index = 0; request_index < counter_requests; ++request_index)
+        for (int key : experiment_input->requests)
         {
-            int key = 0;
-            if (!(in >> key))
-            throw std:: runtime_error ("Invalid input argument\n");
-            
             if (levels[0].touch(key))
             {
                 hits++;
                 continue;
             }
-            std::optional<page_t> page;
+            std:: optional<page_t> page;
             for (std:: size_t index_level = 1; index_level < levels.size(); index_level++)
             {
                 page = levels[index_level].extract(key);
@@ -89,8 +105,14 @@ namespace caches
             levels[0].insert(key, *page, CallBack, &transfer_context);
         }
 
-        return hits; 
+        return hits;
+    }
 
+    inline size_t RunExperiment (const Config& config)
+    {
+        ExperimentInput experiment_input = ReadExperimentInput(std::cin);
+
+        return CountHierarchyHits(config, &experiment_input);
     }
     
 }
