@@ -1,0 +1,16 @@
+dataset,workload,split,seed,requests,working_set,hot_requests,scan_size,input_file
+train_sequential_unique,sequential_unique,train,,1000,0,0,0,inputs/train_sequential_unique.in
+train_hot_set,hot_set,train,,1000,4,0,0,inputs/train_hot_set.in
+train_cycle,cycle,train,,1000,33,0,0,inputs/train_cycle.in
+train_hot_scan,hot_scan,train,,1000,4,128,64,inputs/train_hot_scan.in
+train_phase_change,phase_change,train,,1000,8,0,0,inputs/train_phase_change.in
+train_uniform_42,uniform,train,42,1000,64,0,0,inputs/train_uniform_42.in
+train_uniform_43,uniform,train,43,1000,64,0,0,inputs/train_uniform_43.in
+train_uniform_44,uniform,train,44,1000,64,0,0,inputs/train_uniform_44.in
+validation_sequential_unique,sequential_unique,validation,,1000,0,0,0,inputs/validation_sequential_unique.in
+validation_hot_set,hot_set,validation,,1000,6,0,0,inputs/validation_hot_set.in
+validation_cycle,cycle,validation,,1000,35,0,0,inputs/validation_cycle.in
+validation_hot_scan,hot_scan,validation,,1000,6,96,96,inputs/validation_hot_scan.in
+validation_phase_change,phase_change,validation,,1000,10,0,0,inputs/validation_phase_change.in
+validation_uniform_101,uniform,validation,101,1000,64,0,0,inputs/validation_uniform_101.in
+validation_uniform_102,uniform,validation,102,1000,64,0,0,inputs/validation_uniform_102.in

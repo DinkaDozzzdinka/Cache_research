@@ -1,0 +1,7 @@
+workload,capacity,selected,levels,train_hit_ratio,validation_hit_ratio,validation_ideal_ratio,validation_gap_pp,best_single,best_single_validation_ratio,delta_validation_pp
+cycle,8,LIRS,1,0.21,0.196,0.203,0.7000000000000006,LIRS,0.196,0.0
+hot_scan,8,ARC,1,0.676,0.514,0.514,0.0,ARC,0.514,0.0
+hot_set,8,2Q,1,0.996,0.994,0.994,0.0,2Q,0.994,0.0
+phase_change,8,2Q,1,0.984,0.26,0.764,50.4,2Q,0.26,0.0
+sequential_unique,8,2Q,1,0.0,0.0,0.0,0.0,2Q,0.0,0.0
+uniform,8,2Q,1,0.12333333333333334,0.122,0.3725,25.05,2Q,0.122,0.0

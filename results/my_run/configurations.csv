@@ -1,0 +1,6 @@
+policies,levels,capacity,level_capacities
+LRU,1,8,8
+LFU,1,8,8
+2Q,1,8,8
+ARC,1,8,8
+LIRS,1,8,8

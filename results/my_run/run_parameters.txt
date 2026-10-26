@@ -1,0 +1,8 @@
+requests=1000
+max_levels=1
+configurations=5
+datasets=15
+compiler=13.3.0
+cplusplus=201703
+initial_state=empty
+metric=hit_ratio
