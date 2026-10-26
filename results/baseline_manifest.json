@@ -1,0 +1,74 @@
+{
+  "scope": "Preliminary single-level hit-ratio measurements; not runtime measurements or final conclusions.",
+  "requests_count": 10000,
+  "capacities": [
+    8,
+    16,
+    32
+  ],
+  "policies": [
+    "LRU",
+    "LFU",
+    "2Q",
+    "ARC",
+    "LIRS"
+  ],
+  "initial_state": "Empty caches for every invocation.",
+  "ideal_baseline": "Computed once per workload and capacity, then reused across policies.",
+  "stored_input_capacity": 8,
+  "stored_input_note": "All saved inputs use capacity 8. CSV capacities 16 and 32 reuse exactly the same keys with only capacity changed.",
+  "python_version": "3.12.3",
+  "git_revision": "0e03dd3de5cd0dee320123bff72fb036b2792f74",
+  "source_sha256": {
+    "CMakeLists.txt": "60fbcbd90c11e4985c2fed89fdcbbf065e092aec6ebf6ce48e02f9e0a119b846",
+    "include/arc.hpp": "570e560e62f221fc3be60a4e134fa7f0a03358cc5bfdcd155e416e8bccb20131",
+    "include/cache_level.hpp": "09ebe122292c9eea3183f958f996ade970b6159c669c994f585298372b826657",
+    "include/config.hpp": "90c9665a11ffbbb6dfbfd3eedead701619ee02ab9a0c26a3cfac2ffbef849673",
+    "include/experiment.hpp": "4363fc4fe6edd976eadda4ba3336c43c50033b6e8806867a4d6e04b5f76d8eb2",
+    "include/ideal.hpp": "15f3520167d1f3603f75bb5ba2495748d80b3c8cf994b5abae0518817b282025",
+    "include/lfu.hpp": "4e4e8a7b0674159eedc37918b5a2f05af48c9c24d5f8d4fafd85f02db4c4efe8",
+    "include/lirs.hpp": "9bf07a6bde56c0442a2427fee033f62c9f6000b0fe8654bd504887b3059efefc",
+    "include/lru.hpp": "1a72de77ba4c69567dbc26c38eb39df27061f45d704bd8a413ddfc068784c913",
+    "include/two_q.hpp": "c8d599b295fe7d1c870bd881c6b92ce790802c9d412cecc5eeb6bfae6ad9df8c",
+    "src/main.cpp": "41fdeab5028be49706dccad6129ccaf35de72ab3edc4fa4bca6ea048c821786c",
+    "src/read_config.cpp": "4cfbde716b6710178f3baccb7fd13ff15041af98890116897bd698d03ed955e6"
+  },
+  "workloads": {
+    "sequential_unique": {
+      "description": "All keys are distinct: 0..9999.",
+      "seed": null,
+      "input_file": "data/research/sequential_unique.in",
+      "sha256": "250e6ded5fad900ef77fb6257d43eef97db1eba40787d4d120cf0066064e4082"
+    },
+    "hot_set_4": {
+      "description": "Cycle through keys 0..3.",
+      "seed": null,
+      "input_file": "data/research/hot_set_4.in",
+      "sha256": "6260df4a3421dff37d5e343b272c3efd9c5a95b6047630ef5e12a1f59b7a75e1"
+    },
+    "cycle_33": {
+      "description": "Cycle through keys 0..32; fixed working set for all capacities.",
+      "seed": null,
+      "input_file": "data/research/cycle_33.in",
+      "sha256": "1a0b1ece8214b5fa9ada1bfda2a45bdec94013919fad48511370307feda99b22"
+    },
+    "hot_scan": {
+      "description": "128 accesses cycling through 0..3, then 64 new unique scan keys; repeat and truncate.",
+      "seed": null,
+      "input_file": "data/research/hot_scan.in",
+      "sha256": "3b1c06ea3aeccbdb9f87380674b76020e2061fc14e8df0c5fa19f432e526bdc8"
+    },
+    "phase_change_8": {
+      "description": "First 5000 accesses cycle through 0..7; last 5000 through 100..107.",
+      "seed": null,
+      "input_file": "data/research/phase_change_8.in",
+      "sha256": "5c14a4b82b039ae0706c14bc024d878fd91c95726b6160a954511d5799c630b5"
+    },
+    "uniform_64": {
+      "description": "Uniform keys 0..63; Python random.Random(42).",
+      "seed": 42,
+      "input_file": "data/research/uniform_64.in",
+      "sha256": "5c9d0631dca302ef5f82a8b05668854b8f97f54b8be13ff1afff873aa8602b8b"
+    }
+  }
+}
